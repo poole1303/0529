@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>MindAR 影片播放互動</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #hint {
+            position: fixed;
+            left: 50%;
+            bottom: 95px;
+            transform: translateX(-50%);
+            z-index: 9999;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 15px;
+            line-height: 1.6;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+
+        #soundBtn, #playBtn {
+            position: fixed;
+            bottom: 34px;
+            z-index: 10000;
+            width: 56px;
+            height: 56px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.75);
+            color: white;
+            font-size: 26px;
+            display: none;
+        }
+
+        #soundBtn {
+            right: 24px;
+        }
+
+        #playBtn {
+            right: 92px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div id="hint">請掃描 gem 圖片</div>
+<button id="playBtn">⏸️</button>
+<button id="soundBtn">🔇</button>
+
+<a-scene
+    mindar-image="imageTargetSrc: gem.mind; autoStart: true; uiScanning: true;"
+    color-space="sRGB"
+    renderer="colorManagement: true; physicallyCorrectLights: true"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false"
+>
+    <a-assets>
+        <video
+            id="introVid"
+            src="sky.mp4"
+            preload="auto"
+            loop
+            muted
+            autoplay
+            playsinline
+            webkit-playsinline>
+        </video>
+    </a-assets>
+
+    <a-light type="ambient" intensity="1.5"></a-light>
+
+    <a-camera look-controls="enabled: false"></a-camera>
+
+    <a-entity id="target" mindar-image-target="targetIndex: 0">
+        <a-video
+            id="videoEntity"
+            src="#introVid"
+            width="0.5"
+            height="0.89"
+            position="0 0 0"
+            material="shader: flat">
+        </a-video>
+    </a-entity>
+</a-scene>
+
+<script>
+    const video = document.querySelector('#introVid');
+    const target = document.querySelector('#target');
+    const hint = document.querySelector('#hint');
+    const soundBtn = document.querySelector('#soundBtn');
+    const playBtn = document.querySelector('#playBtn');
+
+    let found = false;
+
+    target.addEventListener('targetFound', () => {
+        found = true;
+
+        video.muted = true;
+        video.currentTime = 0;
+
+        video.play().then(() => {
+            hint.innerHTML = '影片已自動播放<br>可按右下角按鈕控制播放與聲音';
+            hint.style.display = 'block';
+
+            playBtn.style.display = 'block';
+            soundBtn.style.display = 'block';
+
+            playBtn.innerHTML = '⏸️';
+            soundBtn.innerHTML = '🔇';
+        }).catch(() => {
+            hint.innerHTML = '影片自動播放失敗<br>請按播放鍵 ▶️';
+            hint.style.display = 'block';
+
+            playBtn.style.display = 'block';
+            playBtn.innerHTML = '▶️';
+        });
+    });
+
+    target.addEventListener('targetLost', () => {
+        found = false;
+
+        video.pause();
+        video.currentTime = 0;
+        video.muted = true;
+
+        hint.innerHTML = '請重新掃描 gem 圖片';
+        hint.style.display = 'block';
+
+        playBtn.style.display = 'none';
+        soundBtn.style.display = 'none';
+
+        playBtn.innerHTML = '▶️';
+        soundBtn.innerHTML = '🔇';
+    });
+
+    playBtn.addEventListener('click', () => {
+        if (!found) return;
+
+        if (video.paused) {
+            video.play();
+            playBtn.innerHTML = '⏸️';
+            hint.innerHTML = '影片播放中';
+        } else {
+            video.pause();
+            playBtn.innerHTML = '▶️';
+            hint.innerHTML = '影片已暫停';
+        }
+
+        hint.style.display = 'block';
+    });
+
+    soundBtn.addEventListener('click', () => {
+        if (!found) return;
+
+        video.muted = !video.muted;
+        video.volume = 1.0;
+        video.play();
+
+        if (video.muted) {
+            soundBtn.innerHTML = '🔇';
+            hint.innerHTML = '已關閉聲音';
+            hint.style.display = 'block';
+        } else {
+            soundBtn.innerHTML = '🔊';
+            hint.innerHTML = '已開啟聲音';
+
+            setTimeout(() => {
+                hint.style.display = 'none';
+            }, 1000);
+        }
+    });
+</script>
+
+</body>
+</html>
